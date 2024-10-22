@@ -28,7 +28,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "usbd_cdc_if.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -106,6 +106,10 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+    // Simple "hello world" test
+    CDC_Transmit_FS((uint8_t *)"Hello world!\r\n", 14);
+    HAL_GPIO_TogglePin(D3_LED2_GPIO_Port,D3_LED2_Pin);
+    HAL_Delay(500);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
