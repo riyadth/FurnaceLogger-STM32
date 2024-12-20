@@ -29,10 +29,16 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "usbd_cdc_if.h"
+#include "assert.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
+typedef struct {
+  uint8_t buf[1024];
+  size_t head;
+  size_t tail;
+} io_buffer_t;
 
 /* USER CODE END PTD */
 
@@ -49,6 +55,8 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+static uint8_t _string_data[] = "Hello world!\r\n";
+static io_buffer_t _rxd;
 
 /* USER CODE END PV */
 
@@ -60,6 +68,64 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+static int _fifo_put(io_buffer_t *fifo, uint8_t byte)
+{
+  int result = -1;
+  size_t next_head = fifo->head + 1;
+  if (next_head >= sizeof(fifo->buf)) {
+    next_head = 0;
+  }
+  if (next_head != fifo->tail) {
+    fifo->buf[fifo->head] = byte;
+    fifo->head = next_head;
+    result = 0;
+  }
+
+  return result;
+}
+
+void recv_bytes(const uint8_t *buf, size_t count)
+{
+  while (count-- != 0) {
+    if (_fifo_put(&_rxd, *buf++) != 0) {
+      // FIFO is full
+      break;
+    }
+  }
+}
+
+int _read(int fd, void *buf, size_t count)
+{
+  int byte_count = 0;
+  assert(buf != NULL);
+  uint8_t *rx_buf = (uint8_t *)buf;
+  if (fd == 0) {
+    while ((count-- != 0) && (_rxd.head != _rxd.tail)) {
+      *rx_buf++ = _rxd.buf[_rxd.tail];
+      byte_count++;
+      if (++_rxd.tail >= sizeof(_rxd.buf)) {
+        _rxd.tail = 0;
+      }
+    }
+  }
+  return byte_count;
+}
+
+int _write(int fd, const void *buf, size_t count)
+{
+  int actual_count = -1;
+  assert(buf != NULL);
+  if ((fd == 1) || (fd == 2)) {
+    actual_count = 0;
+    if (CDC_Transmit_FS((uint8_t *)buf, count) == USBD_OK) {
+      actual_count = count;
+    }
+    else {
+      actual_count = -1;
+    }
+  }
+  return actual_count;
+}
 
 /* USER CODE END 0 */
 
@@ -107,8 +173,15 @@ int main(void)
   while (1)
   {
     // Simple "hello world" test
-    CDC_Transmit_FS((uint8_t *)"Hello world!\r\n", 14);
-    HAL_GPIO_TogglePin(D3_LED2_GPIO_Port,D3_LED2_Pin);
+    if (CDC_Transmit_FS(_string_data, sizeof(_string_data)) == USBD_OK) {
+      HAL_GPIO_WritePin(D3_LED2_GPIO_Port, D3_LED2_Pin, GPIO_PIN_RESET);
+      HAL_GPIO_TogglePin(D13_LED1_GPIO_Port, D13_LED1_Pin);
+    }
+    else {
+      HAL_GPIO_WritePin(D13_LED1_GPIO_Port, D13_LED1_Pin, GPIO_PIN_RESET);
+      HAL_GPIO_TogglePin(D3_LED2_GPIO_Port, D3_LED2_Pin);
+      HAL_Delay(500);
+    }
     HAL_Delay(500);
     /* USER CODE END WHILE */
 

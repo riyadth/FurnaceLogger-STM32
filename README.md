@@ -1,4 +1,12 @@
-# Furnace Logger
+# Furnace Logger using STM32
+
+**UPDATE**
+
+Work has ceased on this project for the moment, due to challenges with
+documentation and support for the Olimexino-STM32. Too much friction,
+so the project will continue as an Arduino Uno with a data logger shield.
+
+---
 
 This project implements a microcontroller-based data logger that will
 monitor the thermostat control lines of my gas forced-air furnace.

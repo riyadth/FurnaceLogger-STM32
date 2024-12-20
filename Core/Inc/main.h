@@ -53,6 +53,7 @@ extern "C" {
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
+void recv_bytes(const uint8_t *buf, size_t count);
 
 /* USER CODE END EFP */
 
